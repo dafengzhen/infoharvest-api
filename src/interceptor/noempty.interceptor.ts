@@ -11,22 +11,25 @@ import { map } from 'rxjs';
  * @author dafengzhen
  */
 export class NoEmptyInterceptor implements NestInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    return next.handle().pipe(map((data: unknown) => this.removeNullAndUndefinedValues(data)));
+  intercept(_: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(map(this.removeNullAndUndefinedValues));
   }
 
-  private removeNullAndUndefinedValues(data: unknown): unknown {
+  private removeNullAndUndefinedValues = (data: unknown): unknown => {
     if (Array.isArray(data)) {
-      return data.map((item: unknown) => this.removeNullAndUndefinedValues(item)).filter(isNotNullOrUndefined);
-    } else if (data && typeof data === 'object' && !(data instanceof Date)) {
+      return data.map(this.removeNullAndUndefinedValues).filter(isNotNullOrUndefined);
+    }
+
+    if (data && typeof data === 'object' && !(data instanceof Date)) {
       return Object.fromEntries(
-        Object.entries(data as Record<string, unknown>)
+        Object.entries(data)
           .map(([key, value]) => [key, this.removeNullAndUndefinedValues(value)])
           .filter(([, value]) => isNotNullOrUndefined(value)),
       );
     }
+
     return data;
-  }
+  };
 }
 
 /**
@@ -35,6 +38,4 @@ export class NoEmptyInterceptor implements NestInterceptor {
  * @param value - The value to check.
  * @returns True if the value is neither null nor undefined.
  */
-function isNotNullOrUndefined(value: unknown): boolean {
-  return value !== null && value !== undefined;
-}
+const isNotNullOrUndefined = (value: unknown): boolean => value != null;

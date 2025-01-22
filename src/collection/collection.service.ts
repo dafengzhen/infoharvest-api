@@ -1,24 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { instanceToPlain } from 'class-transformer';
+import { EntityManager, Repository } from 'typeorm';
 
+import { TCurrentUser } from '../auth/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { IPagination } from '../common/interface/pagination';
-import { Paginate } from '../common/tool/pagination';
-import { ExcerptLink } from '../excerpt/entities/excerpt-link.entity';
-import { ExcerptName } from '../excerpt/entities/excerpt-name.entity';
-import { ExcerptState } from '../excerpt/entities/excerpt-state.entity';
-import { Excerpt } from '../excerpt/entities/excerpt.entity';
-import { History } from '../history/entities/history.entity';
+import { Paginate } from '../common/tool/tool';
+import { AUTHENTICATION_REQUIRED_MESSAGE } from '../constants';
 import { User } from '../user/entities/user.entity';
-import { CreateCollectionDto } from './dto/create-collection.dto';
+import { SaveCollectionDto } from './dto/save-collection.dto';
 import { SearchCollectionDto } from './dto/search-collection.dto';
-import { SelectCollectionDto } from './dto/select-collection.dto';
-import { UpdateCollectionDto } from './dto/update-collection.dto';
+import { UpdateCustomConfigCollectionDto } from './dto/update-custom-config-collection.dto';
 import { Collection } from './entities/collection.entity';
 
 /**
- * CollectionService,
+ * Service for handling collections. Includes methods for querying, saving, updating, removing, and searching collections.
  *
  * @author dafengzhen
  */
@@ -27,322 +24,228 @@ export class CollectionService {
   constructor(
     @InjectRepository(Collection)
     private readonly collectionRepository: Repository<Collection>,
-    @InjectRepository(Excerpt)
-    private readonly excerptRepository: Repository<Excerpt>,
-    @InjectRepository(ExcerptName)
-    private readonly excerptNameRepository: Repository<ExcerptName>,
-    @InjectRepository(ExcerptLink)
-    private readonly excerptLinkRepository: Repository<ExcerptLink>,
-    @InjectRepository(ExcerptState)
-    private readonly excerptStateRepository: Repository<ExcerptState>,
-    @InjectRepository(History)
-    private readonly historyRepository: Repository<History>,
-    private readonly dataSource: DataSource,
+    private readonly entityManager: EntityManager,
   ) {}
 
-  async addExcerptCount(collections: Collection[] | SelectCollectionDto[]) {
-    for (let i = 0; i < collections.length; i++) {
-      const collection = collections[i];
-      for (let j = 0; j < collection.subset.length; j++) {
-        const item = collection.subset[j];
-        item.excerptCount = (
-          await this.excerptRepository.find({
-            where: {
-              collection: {
-                id: item.id,
-              },
-            },
-          })
-        ).length;
-      }
-    }
-  }
-
-  async cleanEmptySubsets(id: number, user: User) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const collection = await this.collectionRepository.findOneOrFail({
-        relations: {
-          subset: true,
-        },
-        where: {
-          id,
-          user: {
-            id: user.id,
-          },
-        },
-      });
-
-      const removed: Collection[] = [];
-      const added: Collection[] = [];
-      for (let i = 0; i < collection.subset.length; i++) {
-        const item = collection.subset[i];
-        const excerpts = await this.excerptRepository.find({
-          where: {
-            collection: {
-              id: item.id,
-            },
-            user: {
-              id: user.id,
-            },
-          },
-        });
-
-        if (excerpts.length === 0) {
-          removed.push(item);
-        } else {
-          added.push(item);
-        }
-      }
-
-      if (removed.length > 0) {
-        collection.subset = added;
-        await this.collectionRepository.save(collection);
-
-        for (let i = 0; i < removed.length; i++) {
-          await this.collectionRepository.remove(removed[i]);
-        }
-      }
-
-      await queryRunner.commitTransaction();
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  create(user: User, createCollectionDto: CreateCollectionDto) {
-    const { name, subsetNames } = createCollectionDto;
-    const collection = new Collection({
-      name,
-    });
-
-    collection.subset = subsetNames.map((item) => {
-      const _collection = new Collection({ name: item });
-      _collection.parentSubset = collection;
-      _collection.user = user;
-      return _collection;
-    });
-    collection.user = user;
-    return this.collectionRepository.save(collection);
-  }
-
-  async findAll(user: User, query: PaginationQueryDto) {
-    const qb = this.collectionRepository
-      .createQueryBuilder('collection')
-      .leftJoinAndSelect('collection.subset', 'subset', 'subset.user = :userId', { userId: user.id })
-      .where('collection.parentSubset is null')
-      .andWhere('collection.user = :userId', { userId: user.id })
-      .addOrderBy('collection.sort', 'DESC')
-      .addOrderBy('collection.id', 'DESC');
-
-    let data: Collection[] | IPagination<Collection>;
-    if (Object.values(query).every((value) => typeof value === 'undefined')) {
-      data = await qb.getMany();
-    } else {
-      data = await Paginate<Collection>(qb, query);
+  /**
+   * Queries a specific collection by its ID.
+   *
+   * @param id - The ID of the collection.
+   * @param currentUser - The current authenticated user.
+   * @returns The collection entity.
+   * @throws UnauthorizedException if the user is not authenticated.
+   */
+  async query(id: number, currentUser: TCurrentUser): Promise<Collection> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
     }
 
-    await this.addExcerptCount(Array.isArray(data) ? data : data.data);
-    return data;
-  }
-
-  async findOne(id: number, user: User) {
-    return this.collectionRepository.findOneOrFail({
+    const collection = await this.collectionRepository.findOne({
       relations: {
-        parentSubset: true,
-        subset: true,
+        children: true,
+        parent: true,
       },
       where: {
         id,
         user: {
-          id: user.id,
+          id: currentUser.id,
         },
       },
     });
+
+    if (!collection) {
+      throw new NotFoundException('Collection not found');
+    }
+
+    return collection;
   }
 
-  async remove(id: number, user: User) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const collection = await this.collectionRepository.findOneOrFail({
-        relations: {
-          excerpts: {
-            links: true,
-            names: true,
-            states: true,
-          },
-          subset: true,
-        },
+  /**
+   * Retrieves all collections with optional pagination.
+   *
+   * @param dto - Pagination query parameters.
+   * @param currentUser - The current authenticated user.
+   * @returns A list of collections or a paginated result.
+   * @throws UnauthorizedException if the user is not authenticated.
+   */
+  async queryAll(dto: PaginationQueryDto, currentUser: TCurrentUser): Promise<Collection[] | IPagination<Collection>> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    const qb = this.collectionRepository
+      .createQueryBuilder('collection')
+      .leftJoinAndSelect('collection.children', 'children')
+      .where('collection.parent is null')
+      .andWhere('collection.user = :userId', { userId: currentUser.id })
+      .addOrderBy('collection.order', 'ASC')
+      .addOrderBy('collection.id', 'DESC');
+
+    if (Object.values(dto).every((value) => typeof value === 'number')) {
+      return Paginate<Collection>(dto, qb);
+    }
+
+    return qb.getMany();
+  }
+
+  /**
+   * Removes a collection by its ID.
+   *
+   * @param id - The ID of the collection to remove.
+   * @param currentUser - The current authenticated user.
+   * @throws UnauthorizedException if the user is not authenticated.
+   */
+  async remove(id: number, currentUser: TCurrentUser): Promise<void> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    await this.entityManager.transaction(async (manager) => {
+      const collection = await manager.findOne(Collection, {
         where: {
           id,
           user: {
-            id: user.id,
+            id: currentUser.id,
           },
         },
       });
 
-      // excerpts
-      const excerpts = collection.excerpts;
-      for (let i = 0; i < excerpts.length; i++) {
-        const excerpt = excerpts[i];
-        await this.historyRepository.remove(
-          await this.historyRepository.find({
-            where: {
-              excerpt: {
-                id: excerpt.id,
-              },
-              user: {
-                id: user.id,
-              },
-            },
-          }),
-        );
-        await this.excerptNameRepository.remove(excerpt.names);
-        await this.excerptLinkRepository.remove(excerpt.links);
-        await this.excerptStateRepository.remove(excerpt.states);
+      if (collection) {
+        await manager.remove(Collection, collection);
       }
-      await this.excerptRepository.remove(excerpts);
-
-      // collection
-      await this.collectionRepository.remove(collection.subset);
-      await this.collectionRepository.remove(collection);
-      await queryRunner.commitTransaction();
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
-  }
-
-  async removeAll(user: User) {
-    const collections = await this.collectionRepository.find({
-      where: {
-        user: {
-          id: user.id,
-        },
-      },
     });
-
-    for (let i = 0; i < collections.length; i++) {
-      const collection = collections[i];
-      await this.remove(collection.id, user);
-    }
   }
 
-  search(user: User, query: SearchCollectionDto) {
-    const name = decodeURIComponent(query.name);
+  /**
+   * Saves or updates a collection along with its children.
+   *
+   * @param saveCollectionDto - Data Transfer Object containing collection details.
+   * @param currentUser - The current authenticated user.
+   * @returns The saved collection entity.
+   * @throws UnauthorizedException if the user is not authenticated.
+   */
+  async save(saveCollectionDto: SaveCollectionDto, currentUser: TCurrentUser): Promise<Collection> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    const handleCollection = async (dto: SaveCollectionDto, user: User, parent?: Collection): Promise<Collection> => {
+      let item: Collection | null = null;
+
+      if (dto.id) {
+        const where = {
+          id: dto.id,
+          user: {
+            id: currentUser.id,
+          },
+        };
+
+        item = await this.collectionRepository.findOne({
+          where: parent
+            ? {
+                ...where,
+                parent: {
+                  id: parent.id,
+                },
+              }
+            : where,
+        });
+      }
+
+      if (!item) {
+        item = new Collection();
+        item.user = user;
+      }
+
+      item.name = dto.name.trim();
+      item.order = typeof dto.order === 'number' ? dto.order : 0;
+      item.parent = parent ? parent : item.parent;
+
+      return item;
+    };
+
+    const collection = await handleCollection(saveCollectionDto, currentUser);
+
+    return this.entityManager.transaction(async (manager) => {
+      const newCollection = await manager.save(Collection, collection);
+      let savedCollection: Collection | null = null;
+
+      if (Array.isArray(saveCollectionDto.children) && saveCollectionDto.children.length > 0) {
+        const children = await Promise.all(
+          saveCollectionDto.children.map((dto) => handleCollection(dto, currentUser, newCollection)),
+        );
+        const savedChildren = await manager.save(Collection, children);
+        savedCollection = instanceToPlain(newCollection) as Collection;
+        savedCollection.children = savedChildren.map((child) => {
+          const { parent: _parent, ...rest } = instanceToPlain(child);
+          void _parent;
+          return rest;
+        }) as Collection[];
+      }
+
+      return savedCollection || newCollection;
+    });
+  }
+
+  /**
+   * Searches for collections by name, including children.
+   *
+   * @param dto - The search parameters.
+   * @param currentUser - The current authenticated user.
+   * @returns A list of matching collections.
+   * @throws UnauthorizedException if the user is not authenticated.
+   */
+  async search(dto: SearchCollectionDto, currentUser: TCurrentUser): Promise<Collection[]> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    const name = decodeURIComponent(dto.name.trim());
+
     return this.collectionRepository
       .createQueryBuilder('collection')
-      .leftJoinAndSelect('collection.subset', 'subset')
-      .leftJoinAndSelect('collection.parentSubset', 'parentSubset')
+      .leftJoinAndSelect('collection.children', 'children')
+      .leftJoinAndSelect('collection.parent', 'parent')
       .where('MATCH(collection.name) AGAINST (:name IN BOOLEAN MODE)', { name })
-      .orWhere('MATCH(subset.name) AGAINST (:name IN BOOLEAN MODE)', {
-        name,
-      })
-      .andWhere('collection.user.id = :userId', { userId: user.id })
+      .orWhere('MATCH(children.name) AGAINST (:name IN BOOLEAN MODE)', { name })
+      .andWhere('collection.user.id = :userId', { userId: currentUser.id })
+      .addOrderBy('collection.order', 'ASC')
       .addOrderBy('collection.id', 'DESC')
       .getMany();
   }
 
-  async selectAll(user: User) {
-    const collections = (
-      await this.collectionRepository
-        .createQueryBuilder('collection')
-        .leftJoinAndSelect('collection.subset', 'subset')
-        .where('collection.parentSubset is null')
-        .andWhere('collection.user = :userId', { userId: user.id })
-        .addOrderBy('collection.sort', 'DESC')
-        .addOrderBy('collection.id', 'DESC')
-        .getMany()
-    ).map((item) => {
-      return new SelectCollectionDto({
-        id: item.id,
-        name: item.name,
-        subset: item.subset.map((value) => {
-          return new SelectCollectionDto({
-            id: value.id,
-            name: value.name,
-            subset: value.subset,
-          });
-        }),
-      });
-    });
-
-    await this.addExcerptCount(collections);
-    return collections;
-  }
-
-  async update(id: number, user: User, updateCollectionDto: UpdateCollectionDto) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const { name, sort, subset } = updateCollectionDto;
-      const collection = await this.collectionRepository.findOneOrFail({
-        relations: {
-          subset: true,
-        },
-        where: {
-          id,
-          user: {
-            id: user.id,
-          },
-        },
-      });
-
-      if (typeof name === 'string') {
-        collection.name = name;
-      }
-
-      if (typeof sort === 'number') {
-        collection.sort = sort;
-      }
-
-      if (Array.isArray(subset)) {
-        // const deletedItems = [];
-        // collection.subset = mergeAndDistinctArrays(collection.subset ?? [], subset, ['name', 'sort', 'deletionFlag'])
-        //   .filter((item) => {
-        //     const value = !item.deletionFlag;
-        //     if (!value) {
-        //       deletedItems.push(item);
-        //     }
-        //     return value;
-        //   })
-        //   .map((item) => {
-        //     delete item.deletionFlag;
-        //
-        //     if (typeof item.id !== 'number' && typeof item.name === 'string') {
-        //       const subsetItem = mergeObjects(new Collection(), item, ['name', 'sort']) as Collection;
-        //       subsetItem.parentSubset = collection;
-        //       subsetItem.user = user;
-        //       return subsetItem;
-        //     }
-        //     return item;
-        //   });
-        //
-        // for (let i = 0; i < deletedItems.length; i++) {
-        //   const item = deletedItems[i];
-        //   await this.remove(item.id, user);
-        // }
-      }
-
-      await this.collectionRepository.save(collection);
-
-      //
-      await queryRunner.commitTransaction();
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
+  /**
+   * Updates the custom configuration for a specific collection owned by the current user.
+   *
+   * @param id - The ID of the collection to update.
+   * @param updateCustomConfigCollectionDto - An object containing key-value pairs to update in the custom configuration.
+   * @param currentUser - The currently authenticated user making the request.
+   * @throws UnauthorizedException - If the user is not authenticated.
+   *
+   * The function ensures the current user owns the collection before updating its custom configuration.
+   * Each key in the provided DTO is merged into the existing custom configuration.
+   */
+  async updateCustomConfig(
+    id: number,
+    updateCustomConfigCollectionDto: UpdateCustomConfigCollectionDto,
+    currentUser: TCurrentUser,
+  ): Promise<void> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
     }
+
+    const collection = await this.collectionRepository.findOne({
+      where: { id, user: { id: currentUser.id } },
+    });
+    if (!collection) {
+      return;
+    }
+
+    const updatedCustomConfig = {
+      ...collection.customConfig,
+      ...updateCustomConfigCollectionDto,
+    };
+
+    await this.collectionRepository.update(id, { customConfig: updatedCustomConfig });
   }
 }

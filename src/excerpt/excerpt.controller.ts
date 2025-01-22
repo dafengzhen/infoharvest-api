@@ -6,24 +6,24 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Logger,
   Param,
   Patch,
   Post,
   Query,
-  Response,
   UseInterceptors,
 } from '@nestjs/common';
-import { Response as Res } from 'express';
 
-import { CurrentUser } from '../auth/current-user.decorator';
-import { User } from '../user/entities/user.entity';
-import { CheckLinkValidityDto } from './dto/check-link-validity.dto';
-import { CreateExcerptDto } from './dto/create-excerpt.dto';
+import type { IPagination } from '../common/interface/pagination';
+
+import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
 import { PaginationQueryExcerptDto } from './dto/pagination-query-excerpt.dto';
+import { SaveExcerptDto } from './dto/save-excerpt.dto';
 import { SearchExcerptDto } from './dto/search-excerpt.dto';
-import { UpdateExcerptDto } from './dto/update-excerpt.dto';
+import { UpdateCustomConfigExcerptDto } from './dto/update-custom-config-excerpt.dto';
+import { ValidateLinkRequestDto } from './dto/validate-link-request.dto';
+import { Excerpt } from './entities/excerpt.entity';
 import { ExcerptService } from './excerpt.service';
+import { ValidateLinkResponseVo } from './vo/validate-link-response.vo';
 
 /**
  * ExcerptController,
@@ -32,50 +32,54 @@ import { ExcerptService } from './excerpt.service';
  */
 @Controller('excerpts')
 export class ExcerptController {
-  private readonly logger = new Logger(ExcerptController.name);
-
-  constructor(private readonly excerptService: ExcerptService) {
-    this.logger.debug('ExcerptController init');
-  }
-
-  @Post('check-link-validity')
-  async checkLinkValidity(@Body() checkLinkValidityDto: CheckLinkValidityDto) {
-    return this.excerptService.checkLinkValidity(checkLinkValidityDto);
-  }
-
-  @HttpCode(HttpStatus.CREATED)
-  @Post()
-  async create(@Response() response: Res, @CurrentUser() user: User, @Body() createExcerptDto: CreateExcerptDto) {
-    const excerpt = await this.excerptService.create(user, createExcerptDto);
-    response.header('Location', `/excerpts/${excerpt.id}`).send();
-  }
+  constructor(private readonly excerptService: ExcerptService) {}
 
   @Get()
   @UseInterceptors(ClassSerializerInterceptor)
-  findAll(@CurrentUser() user: User, @Query() query: PaginationQueryExcerptDto) {
-    return this.excerptService.findAll(user, query);
+  async findAll(
+    @Query() dto: PaginationQueryExcerptDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<Excerpt[] | IPagination<Excerpt>> {
+    return this.excerptService.findAll(dto, currentUser);
   }
 
   @Get(':id')
   @UseInterceptors(ClassSerializerInterceptor)
-  findOne(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.excerptService.findOne(+id, user);
+  async findOne(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {
+    return this.excerptService.findOne(+id, currentUser);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.excerptService.remove(+id, user);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<void> {
+    return this.excerptService.remove(+id, currentUser);
+  }
+
+  @Post()
+  @UseInterceptors(ClassSerializerInterceptor)
+  async save(@Body() saveExcerptDto: SaveExcerptDto, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {
+    return this.excerptService.save(saveExcerptDto, currentUser);
   }
 
   @Get('search')
   @UseInterceptors(ClassSerializerInterceptor)
-  search(@CurrentUser() user: User, @Query() query: SearchExcerptDto) {
-    return this.excerptService.search(user, query);
+  async search(@Query() dto: SearchExcerptDto, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt[]> {
+    return this.excerptService.search(dto, currentUser);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Patch(':id')
-  update(@Param('id') id: number, @CurrentUser() user: User, @Body() updateExcerptDto: UpdateExcerptDto) {
-    return this.excerptService.update(+id, user, updateExcerptDto);
+  @Patch(':id/custom-config')
+  async updateCustomConfig(
+    @Param('id') id: number,
+    @Body() updateCustomConfigExcerptDto: UpdateCustomConfigExcerptDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<void> {
+    return this.excerptService.updateCustomConfig(+id, updateCustomConfigExcerptDto, currentUser);
+  }
+
+  @Post('validate-link')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async validateLink(@Body() validateLinkRequestDto: ValidateLinkRequestDto): Promise<ValidateLinkResponseVo[]> {
+    return this.excerptService.validateLink(validateLinkRequestDto);
   }
 }

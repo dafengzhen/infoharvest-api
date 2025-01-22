@@ -1,12 +1,12 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsObject, IsOptional } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsObject, IsOptional } from 'class-validator';
 
 /**
- * CheckLinkValidityDto,
+ * ValidateLinkRequestDto,
  *
  * @author dafengzhen
  */
-export class CheckLinkValidityDto {
+export class ValidateLinkRequestDto {
   /**
    * headers.
    */
@@ -17,8 +17,8 @@ export class CheckLinkValidityDto {
   /**
    * links.
    */
+  @ArrayNotEmpty()
   @IsArray()
-  @IsOptional()
   @Type(() => String)
   links: string[];
 }

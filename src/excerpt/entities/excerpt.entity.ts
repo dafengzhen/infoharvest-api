@@ -2,19 +2,11 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 
 import { Collection } from '../../collection/entities/collection.entity';
 import { Base } from '../../common/entities/base.entity';
+import { History } from '../../history/entities/history.entity';
 import { User } from '../../user/entities/user.entity';
+import { CustomConfig } from './custom-config';
 import { ExcerptLink } from './excerpt-link.entity';
 import { ExcerptName } from './excerpt-name.entity';
-import { ExcerptState } from './excerpt-state.entity';
-
-/**
- * ExcerptStateEnum,
- */
-export enum ExcerptStateEnum {
-  INVALID = 'INVALID',
-  UNCONFIRMED = 'UNCONFIRMED',
-  VALID = 'VALID',
-}
 
 /**
  * Excerpt,
@@ -27,61 +19,60 @@ export class Excerpt extends Base {
    * collection.
    */
   @ManyToOne(() => Collection, (collection) => collection.excerpts, {
+    cascade: true,
     onDelete: 'CASCADE',
   })
   collection: Collection;
+
+  /**
+   * customConfig.
+   */
+  @Column({ type: 'json' })
+  customConfig: CustomConfig = new CustomConfig();
+
   /**
    * description.
    */
   @Column({ default: null, type: 'text' })
   @Index({ fulltext: true, parser: 'ngram' })
   description: string;
+
   /**
-   * enableHistoryLogging.
+   * histories.
    */
-  @Column({ default: false })
-  enableHistoryLogging: boolean;
+  @OneToMany(() => History, (history) => history.excerpt)
+  histories: History[];
+
   /**
    * icon.
    */
   @Column({ default: null, type: 'text' })
   icon: string;
+
   /**
    * links.
    */
-  @OneToMany(() => ExcerptLink, (excerptLink) => excerptLink.excerpt, {
-    cascade: true,
-  })
+  @OneToMany(() => ExcerptLink, (excerptLink) => excerptLink.excerpt)
   links: ExcerptLink[];
+
   /**
    * names.
    */
-  @OneToMany(() => ExcerptName, (excerptName) => excerptName.excerpt, {
-    cascade: true,
-  })
+  @OneToMany(() => ExcerptName, (excerptName) => excerptName.excerpt)
   names: ExcerptName[];
+
   /**
-   * sort.
+   * order.
    */
   @Column({ default: 0 })
-  sort: number;
-  /**
-   * states.
-   */
-  @OneToMany(() => ExcerptState, (excerptState) => excerptState.excerpt, {
-    cascade: true,
-  })
-  states: ExcerptState[];
+  order: number;
+
   /**
    * user.
    */
   @ManyToOne(() => User, (user) => user.excerpts, {
+    cascade: true,
     onDelete: 'CASCADE',
   })
   user: User;
-
-  constructor(values?: Partial<Pick<Excerpt, 'description' | 'enableHistoryLogging' | 'icon' | 'sort'>>) {
-    super();
-    Object.assign(this, values);
-  }
 }

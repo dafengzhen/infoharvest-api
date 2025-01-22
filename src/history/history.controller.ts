@@ -1,17 +1,21 @@
 import {
+  Body,
   ClassSerializerInterceptor,
   Controller,
-  Delete,
   Get,
-  Logger,
+  HttpCode,
+  HttpStatus,
   Param,
+  Patch,
   Query,
   UseInterceptors,
 } from '@nestjs/common';
 
-import { CurrentUser } from '../auth/current-user.decorator';
-import { User } from '../user/entities/user.entity';
+import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
+import { IPagination } from '../common/interface/pagination';
 import { QueryHistoryDto } from './dto/query-history.dto';
+import { UpdateCustomConfigHistoryDto } from './dto/update-custom-config-history.dto';
+import { History } from './entities/history.entity';
 import { HistoryService } from './history.service';
 
 /**
@@ -21,35 +25,24 @@ import { HistoryService } from './history.service';
  */
 @Controller('histories')
 export class HistoryController {
-  private readonly logger = new Logger(HistoryController.name);
-
-  constructor(private readonly historyService: HistoryService) {
-    this.logger.debug('HistoryController init');
-  }
+  constructor(private readonly historyService: HistoryService) {}
 
   @Get()
   @UseInterceptors(ClassSerializerInterceptor)
-  findAll(
-    @CurrentUser() user: User,
-    @Query()
-    query: QueryHistoryDto,
-  ) {
-    return this.historyService.findAll(user, query);
+  async findAll(
+    @Query() dto: QueryHistoryDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<History[] | IPagination<History>> {
+    return this.historyService.findAll(dto, currentUser);
   }
 
-  @Get(':id')
-  @UseInterceptors(ClassSerializerInterceptor)
-  findOne(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.historyService.findOne(+id, user);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.historyService.remove(+id, user);
-  }
-
-  @Delete()
-  removeAll(@CurrentUser() user: User, @Query() query: QueryHistoryDto) {
-    return this.historyService.removeAll(query, user);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Patch(':id/custom-config')
+  async updateCustomConfig(
+    @Param('id') id: number,
+    @Body() updateCustomConfigHistoryDto: UpdateCustomConfigHistoryDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<void> {
+    return this.historyService.updateCustomConfig(+id, updateCustomConfigHistoryDto, currentUser);
   }
 }

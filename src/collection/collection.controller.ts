@@ -6,23 +6,21 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Logger,
   Param,
   Patch,
   Post,
   Query,
-  Response,
   UseInterceptors,
 } from '@nestjs/common';
-import { Response as Res } from 'express';
 
-import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
-import { User } from '../user/entities/user.entity';
+import { IPagination } from '../common/interface/pagination';
 import { CollectionService } from './collection.service';
-import { CreateCollectionDto } from './dto/create-collection.dto';
+import { SaveCollectionDto } from './dto/save-collection.dto';
 import { SearchCollectionDto } from './dto/search-collection.dto';
-import { UpdateCollectionDto } from './dto/update-collection.dto';
+import { UpdateCustomConfigCollectionDto } from './dto/update-custom-config-collection.dto';
+import { Collection } from './entities/collection.entity';
 
 /**
  * CollectionController,
@@ -31,61 +29,51 @@ import { UpdateCollectionDto } from './dto/update-collection.dto';
  */
 @Controller('collections')
 export class CollectionController {
-  private readonly logger = new Logger(CollectionController.name);
+  constructor(private readonly collectionService: CollectionService) {}
 
-  constructor(private readonly collectionService: CollectionService) {
-    this.logger.debug('CollectionController init');
-  }
-
-  @Delete(':id/cleanEmptySubsets')
-  cleanEmptySubsets(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.collectionService.cleanEmptySubsets(+id, user);
-  }
-
-  @HttpCode(HttpStatus.CREATED)
-  @Post()
-  async create(@Response() response: Res, @CurrentUser() user: User, @Body() createCollectionDto: CreateCollectionDto) {
-    const collection = await this.collectionService.create(user, createCollectionDto);
-    response.header('Location', `/collections/${collection.id}`).send();
+  @Get(':id')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Collection> {
+    return this.collectionService.query(+id, currentUser);
   }
 
   @Get()
   @UseInterceptors(ClassSerializerInterceptor)
-  findAll(@CurrentUser() user: User, @Query() query: PaginationQueryDto) {
-    return this.collectionService.findAll(user, query);
-  }
-
-  @Get(':id')
-  @UseInterceptors(ClassSerializerInterceptor)
-  findOne(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.collectionService.findOne(+id, user);
+  async queryAll(
+    @Query() dto: PaginationQueryDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<Collection[] | IPagination<Collection>> {
+    return this.collectionService.queryAll(dto, currentUser);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.collectionService.remove(+id, user);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser) {
+    return this.collectionService.remove(+id, currentUser);
   }
 
-  @Delete()
-  removeAll(@CurrentUser() user: User) {
-    return this.collectionService.removeAll(user);
+  @Post()
+  @UseInterceptors(ClassSerializerInterceptor)
+  async save(
+    @Body() saveCollectionDto: SaveCollectionDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<Collection> {
+    return this.collectionService.save(saveCollectionDto, currentUser);
   }
 
   @Get('search')
   @UseInterceptors(ClassSerializerInterceptor)
-  search(@CurrentUser() user: User, @Query() query: SearchCollectionDto) {
-    return this.collectionService.search(user, query);
-  }
-
-  @Get('select')
-  @UseInterceptors(ClassSerializerInterceptor)
-  selectAll(@CurrentUser() user: User) {
-    return this.collectionService.selectAll(user);
+  async search(@Query() dto: SearchCollectionDto, @CurrentUser() currentUser: TCurrentUser): Promise<Collection[]> {
+    return this.collectionService.search(dto, currentUser);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Patch(':id')
-  update(@Param('id') id: number, @CurrentUser() user: User, @Body() updateCollectionDto: UpdateCollectionDto) {
-    return this.collectionService.update(+id, user, updateCollectionDto);
+  @Patch(':id/custom-config')
+  async updateCustomConfig(
+    @Param('id') id: number,
+    @Body() updateCustomConfigCollectionDto: UpdateCustomConfigCollectionDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<void> {
+    return this.collectionService.updateCustomConfig(+id, updateCustomConfigCollectionDto, currentUser);
   }
 }

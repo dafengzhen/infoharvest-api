@@ -38,8 +38,4 @@ export abstract class Base {
   @Exclude()
   @VersionColumn()
   version: number;
-
-  protected constructor(partial?: Partial<Base>) {
-    Object.assign(this, partial);
-  }
 }

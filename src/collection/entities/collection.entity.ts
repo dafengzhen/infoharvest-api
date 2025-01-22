@@ -3,6 +3,7 @@ import { Column, Entity, Index, ManyToOne, OneToMany } from 'typeorm';
 import { Base } from '../../common/entities/base.entity';
 import { Excerpt } from '../../excerpt/entities/excerpt.entity';
 import { User } from '../../user/entities/user.entity';
+import { CustomConfig } from './custom-config';
 
 /**
  * Collection,
@@ -12,16 +13,21 @@ import { User } from '../../user/entities/user.entity';
 @Entity()
 export class Collection extends Base {
   /**
-   * excerptCount.
+   * children.
    */
-  excerptCount: number;
+  @OneToMany(() => Collection, (collection) => collection.parent)
+  children: Collection[];
+
+  /**
+   * customConfig.
+   */
+  @Column({ type: 'json' })
+  customConfig: CustomConfig = new CustomConfig();
 
   /**
    * excerpts.
    */
-  @OneToMany(() => Excerpt, (excerpt) => excerpt.collection, {
-    cascade: true,
-  })
+  @OneToMany(() => Excerpt, (excerpt) => excerpt.collection)
   excerpts: Excerpt[];
 
   /**
@@ -35,37 +41,26 @@ export class Collection extends Base {
   name: string;
 
   /**
-   * parentSubset.
-   */
-  @ManyToOne(() => Collection, (collection) => collection.subset, {
-    onDelete: 'CASCADE',
-  })
-  parentSubset: Collection;
-
-  /**
-   * sort.
+   * order.
    */
   @Column({ default: 0 })
-  sort: number;
+  order: number;
 
   /**
-   * subset.
+   * parent.
    */
-  @OneToMany(() => Collection, (collection) => collection.parentSubset, {
+  @ManyToOne(() => Collection, (collection) => collection.children, {
     cascade: true,
+    onDelete: 'CASCADE',
   })
-  subset: Collection[];
+  parent: Collection;
 
   /**
    * user.
    */
   @ManyToOne(() => User, (user) => user.collections, {
+    cascade: true,
     onDelete: 'CASCADE',
   })
   user: User;
-
-  constructor(values?: Partial<Pick<Collection, 'id' | 'name' | 'sort'>>) {
-    super();
-    Object.assign(this, values);
-  }
 }

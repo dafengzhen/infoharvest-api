@@ -16,7 +16,7 @@ export class XPoweredByInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const response = context.switchToHttp().getResponse<Response>();
-    response.header('X-Powered-By', this.xPoweredBy);
+    response.set('X-Powered-By', this.xPoweredBy);
     return next.handle();
   }
 }

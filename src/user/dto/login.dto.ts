@@ -1,11 +1,11 @@
 import { IsNotEmpty, IsString, Length } from 'class-validator';
 
 /**
- * CreateUserDto,
+ * LoginDto,
  *
  * @author dafengzhen
  */
-export class CreateUserDto {
+export class LoginDto {
   /**
    * password.
    */
@@ -21,8 +21,4 @@ export class CreateUserDto {
   @IsString()
   @Length(3, 15)
   username: string;
-
-  constructor(values?: Partial<CreateUserDto>) {
-    Object.assign(this, values);
-  }
 }

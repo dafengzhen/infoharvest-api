@@ -9,6 +9,11 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 dotenvConfig({ path: '.env' });
 
 const config: DataSourceOptions = {
+  cache: {
+    duration: 60000,
+    tableName: 'query_result_cache',
+    type: 'database',
+  },
   database: process.env.DATABASE_NAME,
   entities: ['dist/**/*.entity.js'],
   host: process.env.DATABASE_HOST,

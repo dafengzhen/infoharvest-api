@@ -8,14 +8,22 @@ export class TokenVo {
    * expDays
    */
   expDays: number;
+
   /**
    * id.
    */
   id: number;
+
+  /**
+   * newUser.
+   */
+  newUser: boolean;
+
   /**
    * token.
    */
   token: string;
+
   /**
    * username.
    */

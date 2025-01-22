@@ -5,7 +5,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { EXP_DAYS } from '../constants';
 import { User } from '../user/entities/user.entity';
-import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { LocalStrategy } from './local.strategy';
@@ -16,7 +15,7 @@ import { LocalStrategy } from './local.strategy';
  * @author dafengzhen
  */
 @Module({
-  controllers: [AuthController],
+  controllers: [],
   exports: [AuthService],
   imports: [
     TypeOrmModule.forFeature([User]),

@@ -1,9 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 
-import { User } from '../user/entities/user.entity';
+import { TCurrentUser } from '../auth/current-user.decorator';
+import { IPagination } from '../common/interface/pagination';
+import { AUTHENTICATION_REQUIRED_MESSAGE } from '../constants';
 import { QueryHistoryDto } from './dto/query-history.dto';
+import { UpdateCustomConfigHistoryDto } from './dto/update-custom-config-history.dto';
 import { History } from './entities/history.entity';
 
 /**
@@ -16,84 +19,66 @@ export class HistoryService {
   constructor(
     @InjectRepository(History)
     private readonly historyRepository: Repository<History>,
-    private readonly dataSource: DataSource,
   ) {}
 
-  async findAll(user: User, query: QueryHistoryDto) {
+  /**
+   * Retrieves all history records associated with a specific excerpt for the current user.
+   * Ensures the user is authenticated before proceeding.
+   *
+   * @param dto - The DTO containing query parameters, including the excerpt ID.
+   * @param currentUser - The currently authenticated user.
+   * @returns A list of history records or a paginated result.
+   * @throws UnauthorizedException - If the user is not authenticated.
+   */
+  async findAll(dto: QueryHistoryDto, currentUser: TCurrentUser): Promise<History[] | IPagination<History>> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
     return this.historyRepository.find({
-      relations: {
-        collection: true,
-      },
       where: {
         excerpt: {
-          id: query.excerptId,
-        },
-        user: {
-          id: user.id,
+          id: dto.excerptId,
+          user: {
+            id: currentUser.id,
+          },
         },
       },
     });
   }
 
-  findOne(id: number, user: User) {
-    return this.historyRepository.findOneOrFail({
-      relations: {
-        excerpt: true,
-      },
-      where: {
-        id,
-        user: {
-          id: user.id,
-        },
-      },
+  /**
+   * Updates the custom configuration for a specific history record owned by the current user.
+   *
+   * @param id - The ID of the history record to update.
+   * @param updateCustomConfigHistoryDto - An object containing key-value pairs to update in the history's custom configuration.
+   * @param currentUser - The currently authenticated user making the request.
+   * @throws UnauthorizedException - If the user is not authenticated.
+   *
+   * The function ensures the current user owns the history record before updating its custom configuration.
+   * The provided DTO is merged into the existing custom configuration of the history record.
+   */
+  async updateCustomConfig(
+    id: number,
+    updateCustomConfigHistoryDto: UpdateCustomConfigHistoryDto,
+    currentUser: TCurrentUser,
+  ): Promise<void> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    const history = await this.historyRepository.findOne({
+      where: { excerpt: { user: { id: currentUser.id } }, id },
     });
-  }
-
-  async remove(id: number, user: User) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const history = await this.historyRepository.findOneOrFail({
-        where: {
-          id,
-          user: {
-            id: user.id,
-          },
-        },
-      });
-      await this.historyRepository.remove(history);
-      await queryRunner.commitTransaction();
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
+    if (!history) {
+      return;
     }
-  }
 
-  async removeAll(query: QueryHistoryDto, user: User) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    try {
-      const histories = await this.historyRepository.find({
-        where: {
-          excerpt: {
-            id: query.excerptId,
-          },
-          user: {
-            id: user.id,
-          },
-        },
-      });
-      await this.historyRepository.remove(histories);
-      await queryRunner.commitTransaction();
-    } catch (e) {
-      await queryRunner.rollbackTransaction();
-      throw e;
-    } finally {
-      await queryRunner.release();
-    }
+    const updatedCustomConfig = {
+      ...history.customConfig,
+      ...updateCustomConfigHistoryDto,
+    };
+
+    await this.historyRepository.update(id, { customConfig: updatedCustomConfig });
   }
 }

@@ -1,11 +1,16 @@
 import { IsOptional, IsString } from 'class-validator';
 
 /**
- * UpdateCustomizationSettingsUserDto,
+ * UpdateCustomConfigUserDto,
  *
  * @author dafengzhen
  */
-export class UpdateCustomizationSettingsUserDto {
+export class UpdateCustomConfigUserDto {
+  /**
+   * any.
+   */
+  [key: string]: any;
+
   /**
    * wallpaper.
    */

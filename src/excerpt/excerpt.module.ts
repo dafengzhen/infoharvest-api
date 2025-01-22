@@ -5,7 +5,6 @@ import { Collection } from '../collection/entities/collection.entity';
 import { History } from '../history/entities/history.entity';
 import { ExcerptLink } from './entities/excerpt-link.entity';
 import { ExcerptName } from './entities/excerpt-name.entity';
-import { ExcerptState } from './entities/excerpt-state.entity';
 import { Excerpt } from './entities/excerpt.entity';
 import { ExcerptController } from './excerpt.controller';
 import { ExcerptService } from './excerpt.service';
@@ -17,7 +16,7 @@ import { ExcerptService } from './excerpt.service';
  */
 @Module({
   controllers: [ExcerptController],
-  imports: [TypeOrmModule.forFeature([Collection, Excerpt, ExcerptName, ExcerptLink, ExcerptState, History])],
+  imports: [TypeOrmModule.forFeature([Collection, Excerpt, ExcerptName, ExcerptLink, History])],
   providers: [ExcerptService],
 })
 export class ExcerptModule {}

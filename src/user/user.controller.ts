@@ -6,27 +6,25 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Logger,
   Param,
   Patch,
   Post,
   Put,
-  Query,
-  Response,
+  Res,
   UseInterceptors,
 } from '@nestjs/common';
-import { Response as Res } from 'express';
+import { Response } from 'express';
 
-import { CurrentUser } from '../auth/current-user.decorator';
+import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
 import { Public } from '../auth/public-auth.guard';
 import { getMaxAge, isHttpsSite } from '../common/tool/tool';
-import { SECURE_TK, TK } from '../constants';
-import { CountByDateDto } from './dto/count-by-date.dto';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateCustomizationSettingsUserDto } from './dto/update-customization-settings-user.dto';
+import { LOCATION, SECURE_TK, TK } from '../constants';
+import { LoginDto } from './dto/login.dto';
+import { UpdateCustomConfigUserDto } from './dto/update-custom-config-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
 import { UserService } from './user.service';
+import { TokenVo } from './vo/token.vo';
 
 /**
  * UserController,
@@ -35,67 +33,62 @@ import { UserService } from './user.service';
  */
 @Controller('users')
 export class UserController {
-  private readonly logger = new Logger(UserController.name);
+  constructor(private readonly userService: UserService) {}
 
-  constructor(private readonly userService: UserService) {
-    this.logger.debug('UserController init');
-  }
-
-  @Post()
+  @Post('login')
   @Public()
-  async create(@Response() response: Res, @Body() createUserDto: CreateUserDto) {
-    const vo = await this.userService.create(createUserDto);
+  @UseInterceptors(ClassSerializerInterceptor)
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) response: Response): Promise<TokenVo> {
+    const vo = await this.userService.login(loginDto);
     const _isHttpsSite = isHttpsSite();
 
-    response
-      .cookie(_isHttpsSite ? SECURE_TK : TK, vo.token, {
-        httpOnly: true,
-        maxAge: getMaxAge(vo.expDays),
-        path: '/',
-        sameSite: 'strict',
-        secure: _isHttpsSite,
-      })
-      .header('Location', `/users/${vo.id}`)
-      .send(vo);
+    response.cookie(_isHttpsSite ? SECURE_TK : TK, vo.token, {
+      httpOnly: true,
+      maxAge: getMaxAge(vo.expDays),
+      path: '/',
+      sameSite: 'strict',
+      secure: _isHttpsSite,
+    });
+
+    if (vo.newUser) {
+      response.set(LOCATION, `/users/${vo.id}`);
+      response.status(201);
+    } else {
+      response.status(200);
+    }
+
+    return vo;
   }
 
   @Get(':id')
   @UseInterceptors(ClassSerializerInterceptor)
-  findOne(@Param('id') id: number, @CurrentUser() user: User) {
-    return this.userService.findOne(id, user);
+  async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<null | User> {
+    return this.userService.query(currentUser);
   }
 
-  @Get('profile')
-  @UseInterceptors(ClassSerializerInterceptor)
-  getProfile(@CurrentUser() user: User) {
-    return this.userService.getProfile(user);
-  }
-
-  @Get('countByDate')
-  @Public()
-  getUsersCountByDate(@Query() query: CountByDateDto) {
-    return this.userService.getUsersCountByDate(query);
-  }
-
-  @Delete()
-  remove(@CurrentUser() user: User) {
-    return this.userService.remove(user);
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<void> {
+    return this.userService.remove(currentUser);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Patch(':id')
-  update(@Param('id') id: number, @CurrentUser() user: User, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(id, user, updateUserDto);
-  }
-
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Put(':id/customization-settings')
-  updateCustomizationSettings(
+  @Put(':id')
+  async update(
     @Param('id') id: number,
-    @CurrentUser() user: User,
-    @Body()
-    updateCustomizationSettingsUserDto: UpdateCustomizationSettingsUserDto,
-  ) {
-    return this.userService.updateCustomizationSettings(id, user, updateCustomizationSettingsUserDto);
+    @Body() updateUserDto: UpdateUserDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<void> {
+    return this.userService.update(updateUserDto, currentUser);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Patch(':id/custom-config')
+  async updateCustomConfig(
+    @Param('id') id: number,
+    @Body() updateCustomConfigUserDto: UpdateCustomConfigUserDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<void> {
+    return this.userService.updateCustomConfig(updateCustomConfigUserDto, currentUser);
   }
 }

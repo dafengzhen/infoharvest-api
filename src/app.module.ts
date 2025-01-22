@@ -14,7 +14,6 @@ import databaseConfig from './config/database.config';
 import databaseConfigProd from './config/database.config.prod';
 import { ExcerptLink } from './excerpt/entities/excerpt-link.entity';
 import { ExcerptName } from './excerpt/entities/excerpt-name.entity';
-import { ExcerptState } from './excerpt/entities/excerpt-state.entity';
 import { Excerpt } from './excerpt/entities/excerpt.entity';
 import { ExcerptModule } from './excerpt/excerpt.module';
 import { ExcerptService } from './excerpt/excerpt.service';
@@ -39,7 +38,7 @@ import { UserModule } from './user/user.module';
     TypeOrmModule.forRootAsync({
       useFactory: process.env.NODE_ENV !== 'production' ? databaseConfig : databaseConfigProd,
     }),
-    TypeOrmModule.forFeature([User, Collection, Excerpt, ExcerptName, ExcerptLink, ExcerptState, History]),
+    TypeOrmModule.forFeature([User, Collection, Excerpt, ExcerptName, ExcerptLink, History]),
     AuthModule,
     UserModule,
     CollectionModule,

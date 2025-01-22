@@ -19,30 +19,33 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  public static async isMatchPassword(currentPassword: string, userPassword: string) {
+  public static async isMatchPassword(currentPassword: string, userPassword: string): Promise<boolean> {
     return argon2.verify(userPassword, currentPassword);
   }
 
-  async encryptPassword(password: string) {
+  async encryptPassword(password: string): Promise<string> {
     return argon2.hash(password);
   }
 
-  getTokenForUser(user: User) {
-    const payload = { sub: user.id, username: user.username };
-    return this.jwtService.sign(payload);
-  }
-
-  async getUserByIdAndToken(id: number) {
-    const user = await this.userRepository.findOneBy({ id });
+  async findOneBy(id?: number): Promise<User> {
+    let user: null | User = null;
+    if (typeof id === 'number') {
+      user = await this.userRepository.findOneBy({ id });
+    }
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException('Invalid username or password');
     }
 
     return user;
   }
 
-  async validate(username: string, password: string) {
+  sign(user: User): string {
+    const payload = { sub: user.id, username: user.username };
+    return this.jwtService.sign(payload);
+  }
+
+  async validate(username: string, password: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { username } });
 
     if (!user || !(await AuthService.isMatchPassword(password, user.password))) {

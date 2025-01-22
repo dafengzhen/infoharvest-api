@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Request as Req } from 'express';
-import { JwtPayload } from 'jsonwebtoken';
+import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
 import { isHttpsSite } from '../common/tool/tool';
 import { AUTHORIZATION, BEARER, SECURE_TK, TK } from '../constants';
+import { User } from '../user/entities/user.entity';
 import { AuthService } from './auth.service';
 
 /**
@@ -19,33 +19,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       ignoreExpiration: false,
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Req) => JwtStrategy.extractJWT(req),
+        (request: Request) => JwtStrategy.extractJWT(request),
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       secretOrKey: process.env.TOKEN_SECRET as string,
     });
   }
 
-  static extractAuthHeaderAsBearerToken(req: Req): null | string | undefined {
-    const header = req.headers[AUTHORIZATION] ?? req.headers[AUTHORIZATION.toLowerCase()];
+  static extractAuthHeaderAsBearerToken(request: Request): null | string | undefined {
+    const header = request.headers[AUTHORIZATION] ?? request.headers[AUTHORIZATION.toLowerCase()];
     const bearer = `${BEARER} `;
     if (typeof header === 'string' && header.startsWith(bearer) && header.length > bearer.length * 2) {
       return header;
     }
   }
 
-  static extractJWT(req: Req): null | string {
-    const key = isHttpsSite() ? SECURE_TK : TK;
-    if (typeof req.cookies === 'object') {
-      const tk = (req.cookies as Record<string, string>)[key];
-      if (typeof tk === 'string' && tk.length > 0) {
-        return tk;
-      }
+  static extractJWT(request: Request): null | string {
+    if (request.cookies) {
+      const key = isHttpsSite() ? SECURE_TK : TK;
+      return request.cookies[key] as null | string;
     }
     return null;
   }
 
-  async validate(payload: JwtPayload) {
-    return this.authService.getUserByIdAndToken(Number(payload.sub));
+  async validate(payload: { sub?: number }): Promise<User> {
+    return this.authService.findOneBy(payload.sub);
   }
 }

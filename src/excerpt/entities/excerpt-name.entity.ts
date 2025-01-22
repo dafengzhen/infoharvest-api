@@ -14,18 +14,15 @@ export class ExcerptName extends Base {
    * excerpt.
    */
   @ManyToOne(() => Excerpt, (excerpt) => excerpt.names, {
+    cascade: true,
     onDelete: 'CASCADE',
   })
   excerpt: Excerpt;
+
   /**
    * name.
    */
   @Column()
   @Index({ fulltext: true, parser: 'ngram' })
   name: string;
-
-  constructor(values?: Partial<ExcerptName>) {
-    super();
-    Object.assign(this, values);
-  }
 }

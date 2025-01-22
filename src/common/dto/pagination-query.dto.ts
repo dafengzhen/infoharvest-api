@@ -15,26 +15,10 @@ export class PaginationQueryDto {
   limit?: number;
 
   /**
-   * offset.
-   */
-  @IsNumber()
-  @IsOptional()
-  @IsPositive()
-  offset?: number;
-
-  /**
    * page.
    */
   @IsNumber()
   @IsOptional()
   @IsPositive()
   page?: number;
-
-  /**
-   * size.
-   */
-  @IsNumber()
-  @IsOptional()
-  @IsPositive()
-  size?: number;
 }

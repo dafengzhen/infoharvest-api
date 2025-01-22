@@ -3,14 +3,14 @@ import type { MigrationInterface, QueryRunner } from 'typeorm';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-export class Infoharvest1719129428865 implements MigrationInterface {
+export class Infoharvest1737470033282 implements MigrationInterface {
   public async down(): Promise<void> {
     console.log('There is nothing to restore, if necessary consider deleting the database and starting over');
     return Promise.resolve();
   }
 
   public async up(queryRunner: QueryRunner): Promise<void> {
-    const query = readFileSync(join(__dirname, '../resource/ddl/v1_1__init.sql'), {
+    const query = readFileSync(join(__dirname, '../resource/ddl/v1_0__init.sql'), {
       encoding: 'utf8',
     });
 
