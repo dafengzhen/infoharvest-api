@@ -16,6 +16,7 @@ import {
 import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
 import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { IPagination } from '../common/interface/pagination';
+import { DynamicValidationOptions } from '../common/pipes/validator-options.decorator';
 import { CollectionService } from './collection.service';
 import { SaveCollectionDto } from './dto/save-collection.dto';
 import { SearchCollectionDto } from './dto/search-collection.dto';
@@ -71,7 +72,7 @@ export class CollectionController {
   @Patch(':id/custom-config')
   async updateCustomConfig(
     @Param('id') id: number,
-    @Body() updateCustomConfigCollectionDto: UpdateCustomConfigCollectionDto,
+    @DynamicValidationOptions() updateCustomConfigCollectionDto: UpdateCustomConfigCollectionDto,
     @CurrentUser() currentUser: TCurrentUser,
   ): Promise<void> {
     return this.collectionService.updateCustomConfig(+id, updateCustomConfigCollectionDto, currentUser);

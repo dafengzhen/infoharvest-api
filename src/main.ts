@@ -1,11 +1,11 @@
 import type { CorsOptions, CorsOptionsDelegate } from '@nestjs/common/interfaces/external/cors-options.interface';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 
-import { ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import * as cookieParser from 'cookie-parser';
 
 import { AppModule } from './app.module';
+import { DynamicValidationPipe } from './common/pipes/dynamic-validation.pipe';
 import { NoEmptyInterceptor } from './interceptor/noempty.interceptor';
 import { XPoweredByInterceptor } from './interceptor/xpoweredby.interceptor';
 
@@ -30,6 +30,7 @@ async function bootstrap() {
     cors,
     rawBody: true,
   });
+  const reflector = app.get(Reflector);
 
   app.useGlobalInterceptors(new NoEmptyInterceptor());
   if (process.env.POWERED_BY_HEADER === 'true') {
@@ -37,7 +38,7 @@ async function bootstrap() {
   }
 
   app.useGlobalPipes(
-    new ValidationPipe({
+    new DynamicValidationPipe(reflector, {
       forbidNonWhitelisted: true,
       stopAtFirstError: true,
       transform: true,

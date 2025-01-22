@@ -16,6 +16,7 @@ import {
 import type { IPagination } from '../common/interface/pagination';
 
 import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
+import { DynamicValidationOptions } from '../common/pipes/validator-options.decorator';
 import { PaginationQueryExcerptDto } from './dto/pagination-query-excerpt.dto';
 import { SaveExcerptDto } from './dto/save-excerpt.dto';
 import { SearchExcerptDto } from './dto/search-excerpt.dto';
@@ -71,7 +72,7 @@ export class ExcerptController {
   @Patch(':id/custom-config')
   async updateCustomConfig(
     @Param('id') id: number,
-    @Body() updateCustomConfigExcerptDto: UpdateCustomConfigExcerptDto,
+    @DynamicValidationOptions() updateCustomConfigExcerptDto: UpdateCustomConfigExcerptDto,
     @CurrentUser() currentUser: TCurrentUser,
   ): Promise<void> {
     return this.excerptService.updateCustomConfig(+id, updateCustomConfigExcerptDto, currentUser);

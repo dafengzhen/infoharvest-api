@@ -17,6 +17,7 @@ import { Response } from 'express';
 
 import { CurrentUser, TCurrentUser } from '../auth/current-user.decorator';
 import { Public } from '../auth/public-auth.guard';
+import { DynamicValidationOptions } from '../common/pipes/validator-options.decorator';
 import { getMaxAge, isHttpsSite } from '../common/tool/tool';
 import { LOCATION, SECURE_TK, TK } from '../constants';
 import { LoginDto } from './dto/login.dto';
@@ -86,7 +87,7 @@ export class UserController {
   @Patch(':id/custom-config')
   async updateCustomConfig(
     @Param('id') id: number,
-    @Body() updateCustomConfigUserDto: UpdateCustomConfigUserDto,
+    @DynamicValidationOptions() updateCustomConfigUserDto: UpdateCustomConfigUserDto,
     @CurrentUser() currentUser: TCurrentUser,
   ): Promise<void> {
     return this.userService.updateCustomConfig(updateCustomConfigUserDto, currentUser);
