@@ -32,12 +32,6 @@ import { Collection } from './entities/collection.entity';
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
 
-  @Get(':id')
-  @UseInterceptors(ClassSerializerInterceptor)
-  async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Collection> {
-    return this.collectionService.query(+id, currentUser);
-  }
-
   @Get()
   @UseInterceptors(ClassSerializerInterceptor)
   async queryAll(
@@ -47,12 +41,7 @@ export class CollectionController {
     return this.collectionService.queryAll(dto, currentUser);
   }
 
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser) {
-    return this.collectionService.remove(+id, currentUser);
-  }
-
+  @HttpCode(HttpStatus.OK)
   @Post()
   @UseInterceptors(ClassSerializerInterceptor)
   async save(
@@ -76,5 +65,17 @@ export class CollectionController {
     @CurrentUser() currentUser: TCurrentUser,
   ): Promise<void> {
     return this.collectionService.updateCustomConfig(+id, updateCustomConfigCollectionDto, currentUser);
+  }
+
+  @Get(':id')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Collection> {
+    return this.collectionService.query(+id, currentUser);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser) {
+    return this.collectionService.remove(+id, currentUser);
   }
 }

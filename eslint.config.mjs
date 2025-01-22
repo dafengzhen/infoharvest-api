@@ -36,6 +36,12 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-argument': 'warn',
       '@typescript-eslint/consistent-type-imports': 'error',
       curly: 'error',
+      'perfectionist/sort-objects': [
+        'error',
+        {
+          ignorePatterns: ["*@*(':id')*"],
+        },
+      ],
     },
   },
 );

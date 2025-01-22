@@ -44,18 +44,7 @@ export class ExcerptController {
     return this.excerptService.findAll(dto, currentUser);
   }
 
-  @Get(':id')
-  @UseInterceptors(ClassSerializerInterceptor)
-  async findOne(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {
-    return this.excerptService.findOne(+id, currentUser);
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<void> {
-    return this.excerptService.remove(+id, currentUser);
-  }
-
+  @HttpCode(HttpStatus.OK)
   @Post()
   @UseInterceptors(ClassSerializerInterceptor)
   async save(@Body() saveExcerptDto: SaveExcerptDto, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {
@@ -78,9 +67,22 @@ export class ExcerptController {
     return this.excerptService.updateCustomConfig(+id, updateCustomConfigExcerptDto, currentUser);
   }
 
+  @HttpCode(HttpStatus.OK)
   @Post('validate-link')
   @UseInterceptors(ClassSerializerInterceptor)
   async validateLink(@Body() validateLinkRequestDto: ValidateLinkRequestDto): Promise<ValidateLinkResponseVo[]> {
     return this.excerptService.validateLink(validateLinkRequestDto);
+  }
+
+  @Get(':id')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async findOne(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {
+    return this.excerptService.findOne(+id, currentUser);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<void> {
+    return this.excerptService.remove(+id, currentUser);
   }
 }

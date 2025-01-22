@@ -3,6 +3,7 @@ import type { FindOptionsWhere, Repository, SelectQueryBuilder } from 'typeorm';
 import type { PaginationQueryDto } from '../dto/pagination-query.dto';
 import type { Base } from '../entities/base.entity';
 import type { IPagination } from '../interface/pagination';
+import * as sanitizeHtml from 'sanitize-html';
 
 /**
  * Checks if a given string starts with "http" or "https".
@@ -115,4 +116,21 @@ export const Paginate = async <T extends Base>(
     previous: _page > 1,
     size: _limit,
   };
+};
+
+/**
+ * Sanitize HTML content with custom options.
+ *
+ * @param content - The HTML string to sanitize.
+ * @returns The sanitized HTML string.
+ */
+export const sanitizeContent = (content: string): string => {
+  return sanitizeHtml(content, {
+    allowedAttributes: false,
+    allowedSchemesByTag: {
+      img: ['data'],
+    },
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
+    nonBooleanAttributes: [],
+  });
 };

@@ -8,7 +8,7 @@ import type { IPagination } from '../common/interface/pagination';
 
 import { TCurrentUser } from '../auth/current-user.decorator';
 import { Collection } from '../collection/entities/collection.entity';
-import { isHttpOrHttps, Paginate, saveAssociatedEntities } from '../common/tool/tool';
+import { isHttpOrHttps, Paginate, sanitizeContent, saveAssociatedEntities } from '../common/tool/tool';
 import { AUTHENTICATION_REQUIRED_MESSAGE } from '../constants';
 import { User } from '../user/entities/user.entity';
 import { PaginationQueryExcerptDto } from './dto/pagination-query-excerpt.dto';
@@ -22,6 +22,7 @@ import { ExcerptLink } from './entities/excerpt-link.entity';
 import { ExcerptName } from './entities/excerpt-name.entity';
 import { Excerpt } from './entities/excerpt.entity';
 import { ValidateLinkResponseVo } from './vo/validate-link-response.vo';
+import { History } from '../history/entities/history.entity';
 
 /**
  * ExcerptService,
@@ -39,6 +40,8 @@ export class ExcerptService {
     private readonly excerptNameRepository: Repository<ExcerptName>,
     @InjectRepository(ExcerptLink)
     private readonly excerptLinkRepository: Repository<ExcerptLink>,
+    @InjectRepository(History)
+    private readonly historyRepository: Repository<History>,
     private readonly entityManager: EntityManager,
   ) {}
 
@@ -197,7 +200,7 @@ export class ExcerptService {
     }
 
     if (saveExcerptDto.description) {
-      excerpt.description = saveExcerptDto.description.trim();
+      excerpt.description = sanitizeContent(saveExcerptDto.description.trim());
     }
 
     return this.entityManager.transaction(async (manager) => {
@@ -254,24 +257,33 @@ export class ExcerptService {
         }) as ExcerptLink[];
       }
 
-      return savedExcerpt || newExcerpt;
+      const finalExcerpt = savedExcerpt || newExcerpt;
+      const history = new History();
+      history.icon = finalExcerpt.icon;
+      history.order = finalExcerpt.order;
+      history.description = finalExcerpt.description;
+      history.names = (finalExcerpt.names || []).map((item) => item.name);
+      history.links = (finalExcerpt.links || []).map((item) => item.link);
+      history.excerpt = finalExcerpt;
+      await manager.save(History, history);
+      return finalExcerpt;
     });
   }
 
   /**
    * Searches for excerpts based on a query string, matching against names, links, and descriptions.
    *
-   * @param query - The DTO containing the search query.
+   * @param dto - The DTO containing the search query.
    * @param currentUser - The currently authenticated user.
    * @returns A list of excerpts matching the search criteria.
    * @throws UnauthorizedException - If the user is not authenticated.
    */
-  async search(query: SearchExcerptDto, currentUser: TCurrentUser): Promise<Excerpt[]> {
+  async search(dto: SearchExcerptDto, currentUser: TCurrentUser): Promise<Excerpt[]> {
     if (!currentUser) {
       throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
     }
 
-    const name = decodeURIComponent(query.name.trim());
+    const name = decodeURIComponent(dto.name.trim());
 
     return this.excerptRepository
       .createQueryBuilder('excerpt')

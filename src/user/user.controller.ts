@@ -61,6 +61,16 @@ export class UserController {
     return vo;
   }
 
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Patch(':id/custom-config')
+  async updateCustomConfig(
+    @Param('id') id: number,
+    @DynamicValidationOptions() updateCustomConfigUserDto: UpdateCustomConfigUserDto,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<void> {
+    return this.userService.updateCustomConfig(updateCustomConfigUserDto, currentUser);
+  }
+
   @Get(':id')
   @UseInterceptors(ClassSerializerInterceptor)
   async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<null | User> {
@@ -81,15 +91,5 @@ export class UserController {
     @CurrentUser() currentUser: TCurrentUser,
   ): Promise<void> {
     return this.userService.update(updateUserDto, currentUser);
-  }
-
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @Patch(':id/custom-config')
-  async updateCustomConfig(
-    @Param('id') id: number,
-    @DynamicValidationOptions() updateCustomConfigUserDto: UpdateCustomConfigUserDto,
-    @CurrentUser() currentUser: TCurrentUser,
-  ): Promise<void> {
-    return this.userService.updateCustomConfig(updateCustomConfigUserDto, currentUser);
   }
 }
