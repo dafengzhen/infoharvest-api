@@ -10,6 +10,7 @@ import { TCurrentUser } from '../auth/current-user.decorator';
 import { Collection } from '../collection/entities/collection.entity';
 import { isHttpOrHttps, Paginate, sanitizeContent, saveAssociatedEntities } from '../common/tool/tool';
 import { AUTHENTICATION_REQUIRED_MESSAGE } from '../constants';
+import { History } from '../history/entities/history.entity';
 import { User } from '../user/entities/user.entity';
 import { PaginationQueryExcerptDto } from './dto/pagination-query-excerpt.dto';
 import { SaveExcerptLinkDto } from './dto/save-excerpt-link.dto';
@@ -22,7 +23,6 @@ import { ExcerptLink } from './entities/excerpt-link.entity';
 import { ExcerptName } from './entities/excerpt-name.entity';
 import { Excerpt } from './entities/excerpt.entity';
 import { ValidateLinkResponseVo } from './vo/validate-link-response.vo';
-import { History } from '../history/entities/history.entity';
 
 /**
  * ExcerptService,

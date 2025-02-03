@@ -1,9 +1,10 @@
 import type { FindOptionsWhere, Repository, SelectQueryBuilder } from 'typeorm';
 
+import * as sanitizeHtml from 'sanitize-html';
+
 import type { PaginationQueryDto } from '../dto/pagination-query.dto';
 import type { Base } from '../entities/base.entity';
 import type { IPagination } from '../interface/pagination';
-import * as sanitizeHtml from 'sanitize-html';
 
 /**
  * Checks if a given string starts with "http" or "https".
