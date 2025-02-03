@@ -7,6 +7,7 @@ import { IPagination } from '../common/interface/pagination';
 import { AUTHENTICATION_REQUIRED_MESSAGE } from '../constants';
 import { QueryHistoryDto } from './dto/query-history.dto';
 import { UpdateCustomConfigHistoryDto } from './dto/update-custom-config-history.dto';
+import { CustomConfig } from './entities/custom-config';
 import { History } from './entities/history.entity';
 
 /**
@@ -74,9 +75,10 @@ export class HistoryService {
       return;
     }
 
-    const updatedCustomConfig = {
+    const updatedCustomConfig: CustomConfig = {
       ...history.customConfig,
       ...updateCustomConfigHistoryDto,
+      type: 'history',
     };
 
     await this.historyRepository.update(id, { customConfig: updatedCustomConfig });

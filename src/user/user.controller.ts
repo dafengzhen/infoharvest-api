@@ -62,6 +62,7 @@ export class UserController {
   }
 
   @Get(':id')
+  @Public()
   @UseInterceptors(ClassSerializerInterceptor)
   async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<null | User> {
     return this.userService.query(currentUser);

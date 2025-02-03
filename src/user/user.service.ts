@@ -8,6 +8,7 @@ import { AUTHENTICATION_REQUIRED_MESSAGE, EXP_DAYS } from '../constants';
 import { LoginDto } from './dto/login.dto';
 import { UpdateCustomConfigUserDto } from './dto/update-custom-config-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { CustomConfig } from './entities/custom-config';
 import { User } from './entities/user.entity';
 import { TokenVo } from './vo/token.vo';
 
@@ -140,7 +141,7 @@ export class UserService {
    * by merging the provided DTO with the existing configuration.
    */
   async updateCustomConfig(
-    updateCustomConfigUserDto: UpdateCustomConfigUserDto = {},
+    updateCustomConfigUserDto: UpdateCustomConfigUserDto,
     currentUser: TCurrentUser,
   ): Promise<void> {
     if (!currentUser) {
@@ -153,9 +154,10 @@ export class UserService {
       return;
     }
 
-    const updatedCustomConfig = {
+    const updatedCustomConfig: CustomConfig = {
       ...user.customConfig,
       ...updateCustomConfigUserDto,
+      type: 'user',
     };
 
     await this.userRepository.update(id, { customConfig: updatedCustomConfig });

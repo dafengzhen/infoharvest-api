@@ -13,6 +13,7 @@ import { SaveCollectionDto } from './dto/save-collection.dto';
 import { SearchCollectionDto } from './dto/search-collection.dto';
 import { UpdateCustomConfigCollectionDto } from './dto/update-custom-config-collection.dto';
 import { Collection } from './entities/collection.entity';
+import { CustomConfig } from './entities/custom-config';
 
 /**
  * Service for handling collections. Includes methods for querying, saving, updating, removing, and searching collections.
@@ -241,9 +242,10 @@ export class CollectionService {
       return;
     }
 
-    const updatedCustomConfig = {
+    const updatedCustomConfig: CustomConfig = {
       ...collection.customConfig,
       ...updateCustomConfigCollectionDto,
+      type: 'collection',
     };
 
     await this.collectionRepository.update(id, { customConfig: updatedCustomConfig });

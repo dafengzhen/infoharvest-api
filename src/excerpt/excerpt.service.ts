@@ -19,6 +19,7 @@ import { SaveExcerptDto } from './dto/save-excerpt.dto';
 import { SearchExcerptDto } from './dto/search-excerpt.dto';
 import { UpdateCustomConfigExcerptDto } from './dto/update-custom-config-excerpt.dto';
 import { ValidateLinkRequestDto } from './dto/validate-link-request.dto';
+import { CustomConfig } from './entities/custom-config';
 import { ExcerptLink } from './entities/excerpt-link.entity';
 import { ExcerptName } from './entities/excerpt-name.entity';
 import { Excerpt } from './entities/excerpt.entity';
@@ -328,9 +329,10 @@ export class ExcerptService {
       return;
     }
 
-    const updatedCustomConfig = {
+    const updatedCustomConfig: CustomConfig = {
       ...excerpt.customConfig,
       ...updateCustomConfigExcerptDto,
+      type: 'excerpt',
     };
 
     await this.excerptRepository.update(id, { customConfig: updatedCustomConfig });
