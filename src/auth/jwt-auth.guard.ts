@@ -1,7 +1,9 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
+import { Request } from 'express';
 
+import { JwtStrategy } from './jwt.strategy';
 import { IS_PUBLIC_KEY } from './public-auth.guard';
 
 /**
@@ -21,9 +23,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
 
-    if (isPublic) {
-      return true;
+    const req = context.switchToHttp().getRequest<Request>();
+    if (
+      typeof JwtStrategy.extractJWT(req) === 'string' ||
+      typeof JwtStrategy.extractAuthHeaderAsBearerToken(req) === 'string'
+    ) {
+      return super.canActivate(context);
     }
-    return super.canActivate(context);
+
+    return isPublic ? true : super.canActivate(context);
   }
 }

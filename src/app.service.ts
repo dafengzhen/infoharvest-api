@@ -9,9 +9,11 @@ import { Injectable } from '@nestjs/common';
 export class AppService {
   constructor() {}
 
-  health() {
-    return {
+  async health(): Promise<{
+    status: 'UP';
+  }> {
+    return Promise.resolve({
       status: 'UP',
-    };
+    });
   }
 }

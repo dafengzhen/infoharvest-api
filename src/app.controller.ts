@@ -14,7 +14,9 @@ export class AppController {
 
   @Get('health')
   @Public()
-  health() {
+  async health(): Promise<{
+    status: 'UP';
+  }> {
     return this.appService.health();
   }
 }
