@@ -24,10 +24,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     ]);
 
     const req = context.switchToHttp().getRequest<Request>();
-    if (
-      typeof JwtStrategy.extractJWT(req) === 'string' ||
-      typeof JwtStrategy.extractAuthHeaderAsBearerToken(req) === 'string'
-    ) {
+    if (JwtStrategy.extractJWT(req) || JwtStrategy.extractAuthHeaderAsBearerToken(req)) {
       return super.canActivate(context);
     }
 
