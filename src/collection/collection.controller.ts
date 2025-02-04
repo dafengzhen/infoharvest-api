@@ -49,7 +49,7 @@ export class CollectionController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser) {
+  async remove(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<void> {
     return this.collectionService.remove(+id, currentUser);
   }
 
