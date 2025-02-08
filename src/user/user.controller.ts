@@ -64,8 +64,12 @@ export class UserController {
   @Get(':id')
   @Public()
   @UseInterceptors(ClassSerializerInterceptor)
-  async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<null | User> {
-    return this.userService.query(currentUser);
+  async query(
+    @Param('id') id: number,
+    @Param('cache') cache: boolean = false,
+    @CurrentUser() currentUser: TCurrentUser,
+  ): Promise<null | User> {
+    return this.userService.query(cache, currentUser);
   }
 
   @Delete(':id')

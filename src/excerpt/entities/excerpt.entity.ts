@@ -31,6 +31,12 @@ export class Excerpt extends Base {
   customConfig: CustomConfig = new CustomConfig();
 
   /**
+   * darkIcon.
+   */
+  @Column({ default: null, type: 'text' })
+  darkIcon: string;
+
+  /**
    * description.
    */
   @Column({ default: null, type: 'text' })

@@ -68,18 +68,21 @@ export class UserService {
   }
 
   /**
-   * Retrieves the profile of the current user.
+   * Fetches the profile of the currently logged-in user.
    *
-   * @param {User | null} user - The current user object (nullable).
-   * @returns {Promise<User | null>} The user profile or null if user is not logged in.
+   * @param {boolean} cache - Whether to enable caching for the query.
+   * @param {TCurrentUser} user - The currently authenticated user (nullable).
+   * @returns {Promise<User | null>} A promise resolving to the user profile if found, otherwise null.
    */
-  async query(user: TCurrentUser): Promise<null | User> {
+  async query(cache: boolean, user: TCurrentUser): Promise<null | User> {
     return user
       ? this.userRepository.findOne({
-          cache: {
-            id: `users:${user.id}`,
-            milliseconds: 60000,
-          },
+          cache: cache
+            ? {
+                id: `users:${user.id}`,
+                milliseconds: 60000,
+              }
+            : undefined,
           where: { id: user.id },
         })
       : null;

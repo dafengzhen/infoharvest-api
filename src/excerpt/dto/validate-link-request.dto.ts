@@ -12,7 +12,7 @@ export class ValidateLinkRequestDto {
    */
   @IsObject()
   @IsOptional()
-  headers: Record<string, string>;
+  headers?: Record<string, string>;
 
   /**
    * links.

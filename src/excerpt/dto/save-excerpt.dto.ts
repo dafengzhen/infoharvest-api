@@ -18,6 +18,13 @@ export class SaveExcerptDto {
   collectionId?: number;
 
   /**
+   * darkIcon.
+   */
+  @IsOptional()
+  @IsString()
+  darkIcon?: string;
+
+  /**
    * description.
    */
   @IsOptional()

@@ -32,6 +32,12 @@ import { Collection } from './entities/collection.entity';
 export class CollectionController {
   constructor(private readonly collectionService: CollectionService) {}
 
+  @Get(':id/excerpts')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async findExcerptsById(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Collection> {
+    return this.collectionService.findExcerptsById(+id, currentUser);
+  }
+
   @Get(':id')
   @UseInterceptors(ClassSerializerInterceptor)
   async query(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Collection> {

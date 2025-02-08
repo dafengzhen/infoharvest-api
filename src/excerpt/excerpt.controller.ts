@@ -43,6 +43,12 @@ export class ExcerptController {
     return this.excerptService.findAll(dto, currentUser);
   }
 
+  @Get(':id/histories')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async findHistoriesById(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {
+    return this.excerptService.findHistoriesById(+id, currentUser);
+  }
+
   @Get(':id')
   @UseInterceptors(ClassSerializerInterceptor)
   async findOne(@Param('id') id: number, @CurrentUser() currentUser: TCurrentUser): Promise<Excerpt> {

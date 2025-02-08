@@ -41,8 +41,6 @@ export class ExcerptService {
     private readonly excerptNameRepository: Repository<ExcerptName>,
     @InjectRepository(ExcerptLink)
     private readonly excerptLinkRepository: Repository<ExcerptLink>,
-    @InjectRepository(History)
-    private readonly historyRepository: Repository<History>,
     private readonly entityManager: EntityManager,
   ) {}
 
@@ -69,7 +67,7 @@ export class ExcerptService {
       .where('excerpt.user = :userId', {
         userId: currentUser.id,
       })
-      .addOrderBy('excerpt.order', 'ASC')
+      .addOrderBy('excerpt.order', 'DESC')
       .addOrderBy('excerpt.id', 'DESC');
 
     const { collectionId, ...paginatedDto } = dto;
@@ -90,6 +88,42 @@ export class ExcerptService {
     }
 
     return qb.getMany();
+  }
+
+  /**
+   * Asynchronously finds an excerpt with its associated histories by the given excerpt ID.
+   * The function ensures that the excerpt belongs to the currently authenticated user.
+   *
+   * @param {number} id - The ID of the excerpt to retrieve.
+   * @param {TCurrentUser} currentUser - The currently authenticated user object.
+   *
+   * @returns {Promise<Excerpt>} - A promise that resolves to the excerpt object
+   *                               with its associated histories.
+   *
+   * @throws {UnauthorizedException} - Thrown if the `currentUser` is not provided,
+   *                                   indicating that authentication is required.
+   * @throws {NotFoundException} - Thrown if no excerpt is found with the given ID
+   *                               that belongs to the current user.
+   */
+  async findHistoriesById(id: number, currentUser: TCurrentUser): Promise<Excerpt> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    const excerpt = await this.excerptRepository
+      .createQueryBuilder('excerpt')
+      .leftJoinAndSelect('excerpt.histories', 'histories')
+      .where('excerpt.id = :id', { id })
+      .andWhere('excerpt.user = :userId', { userId: currentUser.id })
+      .orderBy('histories.order', 'DESC')
+      .addOrderBy('histories.id', 'DESC')
+      .getOne();
+
+    if (!excerpt) {
+      throw new NotFoundException('Excerpt not found');
+    }
+
+    return excerpt;
   }
 
   /**
@@ -200,6 +234,10 @@ export class ExcerptService {
       excerpt.icon = saveExcerptDto.icon.trim();
     }
 
+    if (saveExcerptDto.darkIcon) {
+      excerpt.darkIcon = saveExcerptDto.darkIcon.trim();
+    }
+
     if (saveExcerptDto.description) {
       excerpt.description = sanitizeContent(saveExcerptDto.description.trim());
     }
@@ -261,6 +299,7 @@ export class ExcerptService {
       const finalExcerpt = savedExcerpt || newExcerpt;
       const history = new History();
       history.icon = finalExcerpt.icon;
+      history.darkIcon = finalExcerpt.darkIcon;
       history.order = finalExcerpt.order;
       history.description = finalExcerpt.description;
       history.names = (finalExcerpt.names || []).map((item) => item.name);
@@ -297,7 +336,7 @@ export class ExcerptService {
         name,
       })
       .andWhere('excerpt.user = :userId', { userId: currentUser.id })
-      .addOrderBy('excerpt.order', 'ASC')
+      .addOrderBy('excerpt.order', 'DESC')
       .addOrderBy('excerpt.id', 'DESC')
       .getMany();
   }
@@ -351,7 +390,7 @@ export class ExcerptService {
       return [];
     }
 
-    return Promise.all(links.map((link) => this.validateSingleLink(link, validateLinkRequestDto.headers)));
+    return Promise.all(links.map((link) => this.validateSingleLink(link, validateLinkRequestDto.headers ?? {})));
   }
 
   /**

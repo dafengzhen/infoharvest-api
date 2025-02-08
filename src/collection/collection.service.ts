@@ -29,6 +29,42 @@ export class CollectionService {
   ) {}
 
   /**
+   * Asynchronously finds a collection with its excerpts by the given collection ID.
+   * The function ensures that the collection belongs to the currently authenticated user.
+   *
+   * @param {number} id - The ID of the collection to retrieve.
+   * @param {TCurrentUser} currentUser - The currently authenticated user object.
+   *
+   * @returns {Promise<Collection>} - A promise that resolves to the collection object
+   *                                  with its associated excerpts.
+   *
+   * @throws {UnauthorizedException} - Thrown if the `currentUser` is not provided,
+   *                                   indicating that authentication is required.
+   * @throws {NotFoundException} - Thrown if no collection is found with the given ID
+   *                               that belongs to the current user.
+   */
+  async findExcerptsById(id: number, currentUser: TCurrentUser): Promise<Collection> {
+    if (!currentUser) {
+      throw new UnauthorizedException(AUTHENTICATION_REQUIRED_MESSAGE);
+    }
+
+    const collection = await this.collectionRepository
+      .createQueryBuilder('collection')
+      .leftJoinAndSelect('collection.excerpts', 'excerpts')
+      .where('collection.id = :id', { id })
+      .andWhere('collection.user = :userId', { userId: currentUser.id })
+      .orderBy('excerpts.order', 'DESC')
+      .addOrderBy('excerpts.id', 'DESC')
+      .getOne();
+
+    if (!collection) {
+      throw new NotFoundException('Collection not found');
+    }
+
+    return collection;
+  }
+
+  /**
    * Queries a specific collection by its ID.
    *
    * @param id - The ID of the collection.
@@ -79,7 +115,7 @@ export class CollectionService {
       .leftJoinAndSelect('collection.children', 'children')
       .where('collection.parent is null')
       .andWhere('collection.user = :userId', { userId: currentUser.id })
-      .addOrderBy('collection.order', 'ASC')
+      .addOrderBy('collection.order', 'DESC')
       .addOrderBy('collection.id', 'DESC');
 
     if (Object.values(dto).every((value) => typeof value === 'number')) {
@@ -210,7 +246,7 @@ export class CollectionService {
       .where('MATCH(collection.name) AGAINST (:name IN BOOLEAN MODE)', { name })
       .orWhere('MATCH(children.name) AGAINST (:name IN BOOLEAN MODE)', { name })
       .andWhere('collection.user.id = :userId', { userId: currentUser.id })
-      .addOrderBy('collection.order', 'ASC')
+      .addOrderBy('collection.order', 'DESC')
       .addOrderBy('collection.id', 'DESC')
       .getMany();
   }
