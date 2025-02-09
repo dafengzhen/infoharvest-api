@@ -112,6 +112,10 @@ export class ExcerptService {
 
     const excerpt = await this.excerptRepository
       .createQueryBuilder('excerpt')
+      .leftJoinAndSelect('excerpt.collection', 'collection')
+      .leftJoinAndSelect('collection.parent', 'parent')
+      .leftJoinAndSelect('excerpt.names', 'names')
+      .leftJoinAndSelect('excerpt.links', 'links')
       .leftJoinAndSelect('excerpt.histories', 'histories')
       .where('excerpt.id = :id', { id })
       .andWhere('excerpt.user = :userId', { userId: currentUser.id })

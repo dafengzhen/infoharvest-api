@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { IsNumber, IsOptional } from 'class-validator';
 
 /**
  * QueryHistoryDto
@@ -9,7 +9,7 @@ export class QueryHistoryDto {
   /**
    * excerptId.
    */
-  @IsNotEmpty()
   @IsNumber()
-  excerptId: number;
+  @IsOptional()
+  excerptId?: number;
 }

@@ -37,13 +37,29 @@ export class HistoryService {
     }
 
     return this.historyRepository.find({
-      where: {
+      relations: {
         excerpt: {
-          id: dto.excerptId,
-          user: {
-            id: currentUser.id,
+          collection: {
+            parent: true,
           },
+          links: true,
+          names: true,
         },
+      },
+      where: {
+        excerpt:
+          typeof dto.excerptId === 'number'
+            ? {
+                id: dto.excerptId,
+                user: {
+                  id: currentUser.id,
+                },
+              }
+            : {
+                user: {
+                  id: currentUser.id,
+                },
+              },
       },
     });
   }
