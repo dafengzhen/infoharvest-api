@@ -23,7 +23,7 @@ export class User extends Base {
   /**
    * collections.
    */
-  @OneToMany(() => Collection, (collection) => collection.user)
+  @OneToMany(() => Collection, (collection) => collection.user, { cascade: true })
   collections: Collection[];
 
   /**
@@ -35,7 +35,7 @@ export class User extends Base {
   /**
    * excerpts.
    */
-  @OneToMany(() => Excerpt, (excerpt) => excerpt.user)
+  @OneToMany(() => Excerpt, (excerpt) => excerpt.user, { cascade: true })
   excerpts: Excerpt[];
 
   /**

@@ -14,7 +14,6 @@ export class ExcerptName extends Base {
    * excerpt.
    */
   @ManyToOne(() => Excerpt, (excerpt) => excerpt.names, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   excerpt: Excerpt;

@@ -15,7 +15,7 @@ export class Collection extends Base {
   /**
    * children.
    */
-  @OneToMany(() => Collection, (collection) => collection.parent)
+  @OneToMany(() => Collection, (collection) => collection.parent, { cascade: true })
   children: Collection[];
 
   /**
@@ -27,7 +27,7 @@ export class Collection extends Base {
   /**
    * excerpts.
    */
-  @OneToMany(() => Excerpt, (excerpt) => excerpt.collection)
+  @OneToMany(() => Excerpt, (excerpt) => excerpt.collection, { cascade: true })
   excerpts: Excerpt[];
 
   /**
@@ -50,7 +50,6 @@ export class Collection extends Base {
    * parent.
    */
   @ManyToOne(() => Collection, (collection) => collection.children, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   parent: Collection;
@@ -59,7 +58,6 @@ export class Collection extends Base {
    * user.
    */
   @ManyToOne(() => User, (user) => user.collections, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   user: User;

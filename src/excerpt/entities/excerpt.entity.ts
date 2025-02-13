@@ -19,7 +19,6 @@ export class Excerpt extends Base {
    * collection.
    */
   @ManyToOne(() => Collection, (collection) => collection.excerpts, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   collection: Collection;
@@ -46,7 +45,7 @@ export class Excerpt extends Base {
   /**
    * histories.
    */
-  @OneToMany(() => History, (history) => history.excerpt)
+  @OneToMany(() => History, (history) => history.excerpt, { cascade: true })
   histories: History[];
 
   /**
@@ -58,13 +57,13 @@ export class Excerpt extends Base {
   /**
    * links.
    */
-  @OneToMany(() => ExcerptLink, (excerptLink) => excerptLink.excerpt)
+  @OneToMany(() => ExcerptLink, (excerptLink) => excerptLink.excerpt, { cascade: true })
   links: ExcerptLink[];
 
   /**
    * names.
    */
-  @OneToMany(() => ExcerptName, (excerptName) => excerptName.excerpt)
+  @OneToMany(() => ExcerptName, (excerptName) => excerptName.excerpt, { cascade: true })
   names: ExcerptName[];
 
   /**
@@ -77,7 +76,6 @@ export class Excerpt extends Base {
    * user.
    */
   @ManyToOne(() => User, (user) => user.excerpts, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   user: User;

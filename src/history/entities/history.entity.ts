@@ -33,7 +33,7 @@ export class History extends Base {
   /**
    * excerpt.
    */
-  @ManyToOne(() => Excerpt, (excerpt) => excerpt.histories, { cascade: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => Excerpt, (excerpt) => excerpt.histories, { onDelete: 'CASCADE' })
   excerpt: Excerpt;
 
   /**

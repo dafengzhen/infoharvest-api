@@ -14,7 +14,6 @@ export class ExcerptLink extends Base {
    * excerpt.
    */
   @ManyToOne(() => Excerpt, (excerpt) => excerpt.links, {
-    cascade: true,
     onDelete: 'CASCADE',
   })
   excerpt: Excerpt;
