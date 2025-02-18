@@ -50,7 +50,10 @@ export class CollectionService {
 
     const collection = await this.collectionRepository
       .createQueryBuilder('collection')
+      .leftJoinAndSelect('collection.parent', 'parent')
       .leftJoinAndSelect('collection.excerpts', 'excerpts')
+      .leftJoinAndSelect('excerpts.names', 'names')
+      .leftJoinAndSelect('excerpts.links', 'links')
       .where('collection.id = :id', { id })
       .andWhere('collection.user = :userId', { userId: currentUser.id })
       .orderBy('excerpts.order', 'DESC')
